@@ -1,0 +1,22 @@
+{
+  "files.associations": {
+    "*.zsh": "shellscript"
+  },
+  "shellcheck.customArgs": ["--shell=bash"],
+  "shellcheck.useWorkspaceRootAsCwd": true,
+  "[shellscript]": {
+    "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+  "cSpell.words": [
+    "dotenv",
+    "lockfiles",
+    "mypy",
+    "pycache",
+    "pytest",
+    "venv",
+    "worktree",
+    "worktrees"
+  ]
+}

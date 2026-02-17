@@ -1,0 +1,11 @@
+# ShellCheck doesn't support --shell=zsh, so we run it with --shell=bash.
+# This still catches real bugs in POSIX-compatible portions (quoting, unreachable
+# code, case patterns) but produces false positives for Zsh-only syntax.
+# The codes below suppress known Zsh false positives:
+#   SC1009,SC1036,SC1058,SC1072,SC1073 — parse errors from Zsh glob qualifiers (N), (N/)
+#   SC1071 — ShellCheck can't follow Zsh-specific syntax
+#   SC2034 — "unused variable" for Zsh typeset globals
+#   SC2086 — word splitting (Zsh doesn't split unquoted expansions by default)
+#   SC2154 — "referenced but not assigned" for Zsh-set variables
+#   SC3010,SC3030,SC3054 — Zsh features not supported in POSIX sh
+disable=SC1009,SC1036,SC1058,SC1071,SC1072,SC1073,SC2034,SC2086,SC2154,SC3010,SC3030,SC3054
