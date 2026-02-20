@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - name: Syntax check (zsh -n)
+        run: zsh -n wt.zsh
+      - name: ShellCheck (advisory)
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          scandir: '.'
+          additional_files: 'wt.zsh'
+        continue-on-error: true
