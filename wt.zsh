@@ -606,7 +606,7 @@ _wt_cmd_init() {
     main_wt=$(_wt_main_worktree) || return 1
 
     # Read existing config (if any) for pre-selection
-    local prev_editor prev_branch_start prev_branch_tool prev_workspaces prev_dep_dirs prev_sync_categories prev_worktree_dir prev_on_create prev_default_workspace
+    local prev_editor prev_branch_start prev_branch_tool prev_workspaces prev_dep_dirs prev_sync_categories prev_worktree_dir prev_on_create prev_default_workspace prev_theming
     prev_editor=$(_wt_config_get editor 2>/dev/null) || prev_editor=""
     prev_branch_start=$(_wt_config_get branch_start 2>/dev/null) || prev_branch_start=""
     prev_branch_tool=$(_wt_config_get branch_tool 2>/dev/null) || prev_branch_tool=""
@@ -616,6 +616,7 @@ _wt_cmd_init() {
     prev_worktree_dir=$(_wt_config_get worktree_dir 2>/dev/null) || prev_worktree_dir=""
     prev_on_create=$(_wt_config_get on_create 2>/dev/null) || prev_on_create=""
     prev_default_workspace=$(_wt_config_get default_workspace 2>/dev/null) || prev_default_workspace=""
+    prev_theming=$(_wt_config_get theming 2>/dev/null) || prev_theming=""
 
     if $_wt_config_transient; then
         echo ""
@@ -947,6 +948,24 @@ _wt_cmd_init() {
         echo "  ${_WT_C_DIM}No gitignored files detected.${_WT_C_RESET}"
     fi
 
+    # --- Theming picker ---
+    echo ""
+    _wt_heading "Enable editor theming?"
+    echo ""
+    _wt_pick_init_sel=2
+    [[ "$prev_theming" == "on" ]] && _wt_pick_init_sel=1
+    _wt_pick \
+        "on"  "Yes — assign a unique color theme to each worktree" \
+        "off" "No — skip theming"
+    local _th_idx=$?
+    if (( _th_idx == 255 )); then
+        echo ""
+        echo "  ${_WT_C_RED}Operation cancelled.${_WT_C_RESET}"
+        return 1
+    fi
+    local chosen_theming
+    (( _th_idx == 0 )) && chosen_theming="on" || chosen_theming="off"
+
     # --- Post-create action picker ---
     local ed_label
     ed_label=$(_wt_editor_name "$chosen_editor")
@@ -1024,6 +1043,7 @@ _wt_cmd_init() {
     _wt_config_set "workspaces" "$chosen_workspaces"
     _wt_config_set "on_create" "$chosen_on_create"
     _wt_config_set "default_workspace" "$chosen_default_workspace"
+    _wt_config_set "theming" "$chosen_theming"
 
     echo ""
     if $_wt_config_transient; then
@@ -1681,7 +1701,7 @@ _wt_worktree_init() {
     local _conf_content=""
     [[ -f "$_conf_file" ]] && _conf_content=$(<"$_conf_file")
 
-    local editor="" dep_dirs_config="" dep_dir dir_cmds cmd_line sync_cats=""
+    local editor="" dep_dirs_config="" dep_dir dir_cmds cmd_line sync_cats="" theming=""
     local has_deps=false
     local _line
     while IFS= read -r _line; do
@@ -1689,6 +1709,7 @@ _wt_worktree_init() {
             editor=*)          editor="${_line#editor=}" ;;
             dep_dirs=*)        dep_dirs_config="${_line#dep_dirs=}" ;;
             sync_categories=*) sync_cats="${_line#sync_categories=}" ;;
+            theming=*)         theming="${_line#theming=}" ;;
         esac
     done <<< "$_conf_content"
     [[ -z "$editor" ]] && editor="code"
@@ -1727,6 +1748,7 @@ _wt_worktree_init() {
     echo "" > "$status_dir/meta_theme"
     $has_deps && echo 1 > "$status_dir/meta_has_deps" || echo 0 > "$status_dir/meta_has_deps"
     echo "$sync_cats" > "$status_dir/meta_sync_cats"
+    echo "$theming" > "$status_dir/meta_theming"
 
     # --- Rename workspace files synchronously (before background tasks) ---
     local wt_name=${wt_path:t}
@@ -1753,21 +1775,25 @@ _wt_worktree_init() {
     echo $! > "$status_dir/pid_sync"
 
     # Step 2: Resolve theme (async) + apply + skip-worktree
-    (
-        local theme
-        theme=$(_wt_next_theme "$main_wt")
-        echo "$theme" > "$status_dir/meta_theme"
-        ws_file=""; settings_dir=""
-        while IFS= read -r ws_file; do
-            [[ -z "$ws_file" ]] && continue
-            _wt_set_theme "$wt_path/$ws_file" "$theme"
-        done < <(_wt_find_workspace_files "$wt_path")
-        _wt_set_editor_theme "$wt_path" "$theme" "$editor"
-        settings_dir=$(_wt_editor_settings_dir "$editor")
-        ( cd "$wt_path" && git update-index --skip-worktree "$settings_dir/settings.json" 2>/dev/null )
+    if [[ "$theming" == "on" ]]; then
+        (
+            local theme
+            theme=$(_wt_next_theme "$main_wt")
+            echo "$theme" > "$status_dir/meta_theme"
+            ws_file=""; settings_dir=""
+            while IFS= read -r ws_file; do
+                [[ -z "$ws_file" ]] && continue
+                _wt_set_theme "$wt_path/$ws_file" "$theme"
+            done < <(_wt_find_workspace_files "$wt_path")
+            _wt_set_editor_theme "$wt_path" "$theme" "$editor"
+            settings_dir=$(_wt_editor_settings_dir "$editor")
+            ( cd "$wt_path" && git update-index --skip-worktree "$settings_dir/settings.json" 2>/dev/null )
+            echo 0 > "$status_dir/theme"
+        ) &!
+        echo $! > "$status_dir/pid_theme"
+    else
         echo 0 > "$status_dir/theme"
-    ) &!
-    echo $! > "$status_dir/pid_theme"
+    fi
 
     # Step 3: Install dependencies
     if $has_deps; then
@@ -1872,14 +1898,18 @@ _wt_render_init_lines() {
     fi
 
     # -- Theme --
-    if [[ "$mode" == "spinner" ]] && ! [[ -f "$status_dir/theme" ]]; then
-        printf "\r  %s ${_WT_C_DIM}Setting${_WT_C_RESET} ${_WT_C_CYAN}%s${_WT_C_RESET} ${_WT_C_DIM}theme…${_WT_C_RESET}\033[K\n" "$frame" "$ed_name"
-    elif [[ "$mode" == "background" ]] && ! [[ -f "$status_dir/theme" ]]; then
-        _wt_linef skip "Setting ${_WT_C_CYAN}${ed_name}${_WT_C_RESET}${_WT_C_DIM} theme in background"
-        pid=$(<"$status_dir/pid_theme"); disown "$pid" 2>/dev/null
-    else
-        local _resolved_theme=$(<"$status_dir/meta_theme")
-        _wt_linef ok "${_WT_C_CYAN}${ed_name}${_WT_C_RESET} theme set to ${_WT_C_YELLOW}${_resolved_theme}${_WT_C_RESET}"
+    local _theming_flag=""
+    [[ -f "$status_dir/meta_theming" ]] && _theming_flag=$(<"$status_dir/meta_theming")
+    if [[ "$_theming_flag" == "on" ]]; then
+        if [[ "$mode" == "spinner" ]] && ! [[ -f "$status_dir/theme" ]]; then
+            printf "\r  %s ${_WT_C_DIM}Setting${_WT_C_RESET} ${_WT_C_CYAN}%s${_WT_C_RESET} ${_WT_C_DIM}theme…${_WT_C_RESET}\033[K\n" "$frame" "$ed_name"
+        elif [[ "$mode" == "background" ]] && ! [[ -f "$status_dir/theme" ]]; then
+            _wt_linef skip "Setting ${_WT_C_CYAN}${ed_name}${_WT_C_RESET}${_WT_C_DIM} theme in background"
+            pid=$(<"$status_dir/pid_theme"); disown "$pid" 2>/dev/null
+        else
+            local _resolved_theme=$(<"$status_dir/meta_theme")
+            _wt_linef ok "${_WT_C_CYAN}${ed_name}${_WT_C_RESET} theme set to ${_WT_C_YELLOW}${_resolved_theme}${_WT_C_RESET}"
+        fi
     fi
 
     # -- Deps --
@@ -1914,13 +1944,15 @@ _wt_render_init_lines() {
 }
 
 # Load init metadata from status_dir into caller-scope variables.
-# Sets: ed_name, theme, has_deps_flag, sync_cats, sync_cat_display,
+# Sets: ed_name, theme, has_deps_flag, theming_flag, sync_cats, sync_cat_display,
 #       dep_detail_count, dep_dd[], dep_dc[]
 _wt_load_init_metadata() {
     local status_dir="$1"
     ed_name=$(<"$status_dir/meta_editor")
     theme=$(<"$status_dir/meta_theme")
     has_deps_flag=$(<"$status_dir/meta_has_deps")
+    theming_flag=""
+    [[ -f "$status_dir/meta_theming" ]] && theming_flag=$(<"$status_dir/meta_theming")
     sync_cats=""
     [[ -f "$status_dir/meta_sync_cats" ]] && sync_cats=$(<"$status_dir/meta_sync_cats")
     sync_cat_display="${sync_cats//,/, }"
@@ -1938,7 +1970,7 @@ _wt_load_init_metadata() {
 # Print final init results (used when all tasks completed before await was called)
 _wt_await_init_results() {
     local status_dir="$1" ed_name="$2" theme="$3" has_deps_flag="$4"
-    local sync_cats sync_cat_display dep_detail_count=0
+    local theming_flag sync_cats sync_cat_display dep_detail_count=0
     local -a dep_dd dep_dc
     _wt_load_init_metadata "$status_dir"
 
@@ -1956,14 +1988,15 @@ _wt_await_init() {
     local footer="${1:-}"
 
     # Read metadata
-    local ed_name theme has_deps_flag sync_cats sync_cat_display dep_detail_count=0
+    local ed_name theme has_deps_flag theming_flag sync_cats sync_cat_display dep_detail_count=0
     local -a dep_dd dep_dc
     _wt_load_init_metadata "$status_dir"
 
     # Check initial state
     local sync_done=false theme_done=false deps_done=false
     [[ -f "$status_dir/sync" ]] && sync_done=true
-    [[ -f "$status_dir/theme" ]] && theme_done=true
+    [[ "$theming_flag" != "on" ]] && theme_done=true
+    ! $theme_done && [[ -f "$status_dir/theme" ]] && theme_done=true
     if (( ! has_deps_flag )); then deps_done=true
     else [[ -f "$status_dir/deps" ]] && deps_done=true; fi
 
@@ -1979,7 +2012,8 @@ _wt_await_init() {
     local fi_=1 key ii
     # Layout: header(3) + status + tail(2) + optional footer(2)
     local header_lines=3
-    local status_lines=3
+    local status_lines=2
+    [[ "$theming_flag" == "on" ]] && status_lines=$(( status_lines + 1 ))
     (( has_deps_flag )) && status_lines=$(( status_lines + 1 + dep_detail_count ))
     [[ -f "$status_dir/meta_did_stash" ]] && status_lines=$(( status_lines + 1 ))
     local tail_lines=2
@@ -2058,7 +2092,7 @@ _wt_init_prompt() {
     [[ -z "$status_dir" || ! -d "$status_dir" ]] && return 1
 
     # Metadata
-    local ed_name theme has_deps_flag sync_cats sync_cat_display dep_detail_count=0
+    local ed_name theme has_deps_flag theming_flag sync_cats sync_cat_display dep_detail_count=0
     local -a dep_dd dep_dc
     _wt_load_init_metadata "$status_dir"
 
@@ -2130,14 +2164,16 @@ _wt_init_prompt() {
 
     # Task state
     local sync_done=false theme_done=false deps_done=false all_done=false
-    [[ -f "$status_dir/theme" ]] && theme_done=true
+    [[ "$theming_flag" != "on" ]] && theme_done=true
+    ! $theme_done && [[ -f "$status_dir/theme" ]] && theme_done=true
     if (( ! has_deps_flag )); then deps_done=true
     else [[ -f "$status_dir/deps" ]] && deps_done=true; fi
     $sync_done && $theme_done && $deps_done && all_done=true
 
     # Layout: header(3) + status + tail
     local header_lines=3
-    local status_lines=3
+    local status_lines=2
+    [[ "$theming_flag" == "on" ]] && status_lines=$(( status_lines + 1 ))
     (( has_deps_flag )) && status_lines=$(( status_lines + 1 + dep_detail_count ))
     [[ -f "$status_dir/meta_did_stash" ]] && status_lines=$(( status_lines + 1 ))
     local tail_lines=$(( 1 + 1 + num_opts ))
