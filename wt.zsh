@@ -4176,6 +4176,11 @@ _wt_main() {
 
     local subcmd="${1:-}"
 
+    # Allow --help without being in a repo
+    if [[ "$subcmd" != "--help" && "$subcmd" != "-h" ]]; then
+        _wt_repo_root || return 1
+    fi
+
     case "$subcmd" in
         init|i)
             _wt_banner
