@@ -4334,4 +4334,16 @@ _wt_complete_worktrees() {
     fi
 }
 
-(( $+functions[compdef] )) && compdef _wt_completion wt
+if (( $+functions[compdef] )); then
+    compdef _wt_completion wt
+else
+    autoload -Uz add-zsh-hook
+    _wt_deferred_compdef() {
+        if (( $+functions[compdef] )); then
+            compdef _wt_completion wt
+            add-zsh-hook -d precmd _wt_deferred_compdef
+            unfunction _wt_deferred_compdef
+        fi
+    }
+    add-zsh-hook precmd _wt_deferred_compdef
+fi
