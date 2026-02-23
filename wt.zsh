@@ -2486,6 +2486,22 @@ _wt_init_prompt() {
 }
 
 # ---------------------------------------------------------------------------
+# Execute helpers
+# ---------------------------------------------------------------------------
+
+_wt_run_execute() {
+    local cmd="$1"
+    [[ -z "$cmd" ]] && return
+    eval "$cmd"
+}
+
+_wt_skip_execute() {
+    local cmd="$1"
+    [[ -z "$cmd" ]] && return
+    _wt_line warn "--execute skipped (only runs with --cd)"
+}
+
+# ---------------------------------------------------------------------------
 # Subcommands
 # ---------------------------------------------------------------------------
 
@@ -2501,6 +2517,7 @@ _wt_cmd_create() {
     local flag_stash=false
     local pr_number=""
     local branch_name=""
+    local execute_cmd=""
 
     # Expand combined short flags (e.g. -osc → -o -s -c)
     local _expanded_args=()
@@ -2558,6 +2575,10 @@ _wt_cmd_create() {
             --stash|-s)
                 flag_stash=true
                 shift
+                ;;
+            --execute|-x)
+                execute_cmd="$2"
+                shift 2
                 ;;
             -*)
                 echo "${_WT_C_RED}Unknown flag: $1${_WT_C_RESET}" >&2
@@ -2918,6 +2939,7 @@ _wt_cmd_create() {
         else
             _wt_cd "$wt_path"
         fi
+        _wt_run_execute "$execute_cmd"
         return 0
     fi
 
@@ -2927,6 +2949,7 @@ _wt_cmd_create() {
         else
             _wt_open "$wt_path" "$editor_override"
         fi
+        _wt_skip_execute "$execute_cmd"
         return 0
     fi
 
@@ -2940,20 +2963,29 @@ _wt_cmd_create() {
             else
                 _wt_open "$wt_path" "$editor_override"
             fi
+            _wt_skip_execute "$execute_cmd"
         elif [[ "$on_create" == "cd" ]]; then
             if [[ -n "$_wt_init_status_dir" ]]; then
                 _wt_init_prompt "$wt_path" "$editor_override" 2 "configured by wt init"
             else
                 _wt_cd "$wt_path"
             fi
+            _wt_run_execute "$execute_cmd"
         elif [[ "$on_create" == "nothing" ]]; then
             if [[ -n "$_wt_init_status_dir" ]]; then
                 _wt_init_prompt "$wt_path" "$editor_override" 3 "configured by wt init"
             else
                 _wt_await_init
             fi
+            _wt_skip_execute "$execute_cmd"
         elif [[ -n "$_wt_init_status_dir" ]]; then
             _wt_init_prompt "$wt_path" "$editor_override"
+            # Check if we cd'd into the worktree (init_prompt handles the action internally)
+            if [[ "$PWD" == "$wt_path"* ]]; then
+                _wt_run_execute "$execute_cmd"
+            else
+                _wt_skip_execute "$execute_cmd"
+            fi
         else
             # No init tasks — simple picker
             echo ""
@@ -2964,13 +2996,14 @@ _wt_cmd_create() {
                 "n" "Do nothing"
             local choice=$?
             case $choice in
-                0) _wt_open "$wt_path" "$editor_override" ;;
-                1) _wt_cd "$wt_path" ;;
-                2|255) ;;
+                0) _wt_open "$wt_path" "$editor_override"; _wt_skip_execute "$execute_cmd" ;;
+                1) _wt_cd "$wt_path"; _wt_run_execute "$execute_cmd" ;;
+                2|255) _wt_skip_execute "$execute_cmd" ;;
             esac
         fi
     else
         _wt_await_init
+        _wt_skip_execute "$execute_cmd"
     fi
 
     } always {
@@ -3773,6 +3806,22 @@ _wt_cmd_open() {
     local flag_open=false
     local flag_cd=false
     local editor_override=""
+    local execute_cmd=""
+
+    # Expand combined short flags (e.g. -do → -d -o)
+    local _expanded_args=()
+    for _arg in "$@"; do
+        if [[ "$_arg" =~ ^-[a-zA-Z]{2,}$ ]]; then
+            local _chars="${_arg#-}"
+            local _i
+            for (( _i=0; _i < ${#_chars}; _i++ )); do
+                _expanded_args+=("-${_chars[$_i+1]}")
+            done
+        else
+            _expanded_args+=("$_arg")
+        fi
+    done
+    set -- "${_expanded_args[@]}"
 
     # Parse flags (flags can appear before or after the positional name)
     local name=""
@@ -3788,6 +3837,10 @@ _wt_cmd_open() {
                 ;;
             --editor|-e)
                 editor_override="$2"
+                shift 2
+                ;;
+            --execute|-x)
+                execute_cmd="$2"
                 shift 2
                 ;;
             -*)
@@ -3848,13 +3901,16 @@ _wt_cmd_open() {
     if [[ "$name" == "$main_name" ]]; then
         if $flag_cd; then
             cd "$main_wt"
+            _wt_run_execute "$execute_cmd"
         elif $flag_open; then
             local editor="${editor_override:-$(_wt_config_get editor 2>/dev/null)}"
             editor="${editor:-code}"
             "$editor" -n "$main_wt"
+            _wt_skip_execute "$execute_cmd"
         else
             cd "$main_wt"
             _wt_line ok "Moved to main worktree"
+            _wt_run_execute "$execute_cmd"
         fi
         return 0
     fi
@@ -3965,12 +4021,14 @@ _wt_cmd_open() {
             else
                 cd "$wt_path/$(dirname "$_resolved_ws")"
             fi
+            _wt_run_execute "$execute_cmd"
         else
             if [[ "$_resolved_ws" == "." ]]; then
                 "$editor" -n "$wt_path"
             else
                 "$editor" -n "$wt_path/$_resolved_ws"
             fi
+            _wt_skip_execute "$execute_cmd"
         fi
         return 0
     fi
@@ -4042,6 +4100,13 @@ _wt_cmd_open() {
             "$editor" -n "$wt_path"
         fi
     fi
+
+    # Run or skip the execute command based on the action taken
+    if (( action_idx == 1 )); then
+        _wt_run_execute "$execute_cmd"
+    else
+        _wt_skip_execute "$execute_cmd"
+    fi
 }
 
 _wt_usage() {
@@ -4068,6 +4133,7 @@ ${_WT_C_BOLD}Create flags:${_WT_C_RESET}
   ${_WT_C_GREEN}-o${_WT_C_RESET}, ${_WT_C_GREEN}--open${_WT_C_RESET}            open in editor (skip prompt)
   ${_WT_C_GREEN}-C${_WT_C_RESET}, ${_WT_C_GREEN}--configure${_WT_C_RESET}       run setup wizard for this worktree only (one-off)
   ${_WT_C_GREEN}-s${_WT_C_RESET}, ${_WT_C_GREEN}--stash${_WT_C_RESET}           stash current changes and pop into new worktree
+  ${_WT_C_GREEN}-x${_WT_C_RESET}, ${_WT_C_GREEN}--execute${_WT_C_RESET} <cmd>    run a command in the worktree after opening
   ${_WT_C_GREEN}-n${_WT_C_RESET}, ${_WT_C_GREEN}--no-prompt${_WT_C_RESET}       skip the post-create prompt entirely
   ${_WT_C_GREEN}-N${_WT_C_RESET}, ${_WT_C_GREEN}--no-init${_WT_C_RESET}         skip dependency install & theme setup
 
@@ -4075,6 +4141,7 @@ ${_WT_C_BOLD}Open flags:${_WT_C_RESET}
   ${_WT_C_GREEN}-o${_WT_C_RESET}, ${_WT_C_GREEN}--open${_WT_C_RESET}            open in editor (skip prompt)
   ${_WT_C_GREEN}-d${_WT_C_RESET}, ${_WT_C_GREEN}--cd${_WT_C_RESET}              cd into worktree (skip prompt)
   ${_WT_C_GREEN}-e${_WT_C_RESET}, ${_WT_C_GREEN}--editor${_WT_C_RESET} <name>   override editor (cursor, code, windsurf)
+  ${_WT_C_GREEN}-x${_WT_C_RESET}, ${_WT_C_GREEN}--execute${_WT_C_RESET} <cmd>    run a command in the worktree after opening
 
 EOF
 }
