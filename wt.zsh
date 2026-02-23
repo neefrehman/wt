@@ -4115,14 +4115,14 @@ _wt_usage() {
     cat <<EOF
 ${_WT_C_BOLD}Usage:${_WT_C_RESET}
   ${_WT_C_CYAN}wt${_WT_C_RESET}                                          check usage
-  ${_WT_C_CYAN}wt init${_WT_C_RESET}                                     configure worktree creation for current repo
-  ${_WT_C_CYAN}wt create${_WT_C_RESET} [<name>] [flags]                  create a worktree and optionally open it
-  ${_WT_C_CYAN}wt open${_WT_C_RESET} [<name>] [flags]                    open or cd into a worktree, optionally select a workspace, move between workspaces within a worktree
-  ${_WT_C_CYAN}wt delete${_WT_C_RESET} [<name>]                          delete worktree + branch
-  ${_WT_C_CYAN}wt list${_WT_C_RESET}                                     list worktrees with status
-  ${_WT_C_CYAN}wt sync${_WT_C_RESET} [<name>]                           re-sync gitignored files from main to a worktree
-  ${_WT_C_CYAN}wt rename${_WT_C_RESET} [<old>] <new>                    rename a worktree directory and optionally its branch
-  ${_WT_C_CYAN}wt clean${_WT_C_RESET}                                    detect and delete stale worktrees (merged/gone branches)
+  ${_WT_C_CYAN}wt init${_WT_C_RESET}                                     configure worktree creation for current repo          ${_WT_C_DIM}# wt i${_WT_C_RESET}
+  ${_WT_C_CYAN}wt create${_WT_C_RESET} [<name>] [flags]                  create a worktree and optionally open it              ${_WT_C_DIM}# wt c${_WT_C_RESET}
+  ${_WT_C_CYAN}wt open${_WT_C_RESET} [<name>] [flags]                    open or cd into a worktree                            ${_WT_C_DIM}# wt o${_WT_C_RESET}
+  ${_WT_C_CYAN}wt delete${_WT_C_RESET} [<name>]                          delete worktree + branch                              ${_WT_C_DIM}# wt d${_WT_C_RESET}
+  ${_WT_C_CYAN}wt list${_WT_C_RESET}                                     list worktrees with status                            ${_WT_C_DIM}# wt ls${_WT_C_RESET}
+  ${_WT_C_CYAN}wt sync${_WT_C_RESET} [<name>]                           re-sync gitignored files from main to a worktree      ${_WT_C_DIM}# wt s${_WT_C_RESET}
+  ${_WT_C_CYAN}wt rename${_WT_C_RESET} [<old>] <new>                    rename a worktree directory and optionally its branch  ${_WT_C_DIM}# wt rn${_WT_C_RESET}
+  ${_WT_C_CYAN}wt clean${_WT_C_RESET}                                    detect and delete stale worktrees (merged/gone branches)  ${_WT_C_DIM}# wt cl${_WT_C_RESET}
 
 ${_WT_C_BOLD}Create flags:${_WT_C_RESET}
   ${_WT_C_GREEN}-f${_WT_C_RESET}, ${_WT_C_GREEN}--from${_WT_C_RESET} <ref>      start branch from a specific ref
@@ -4177,40 +4177,40 @@ _wt_main() {
     local subcmd="${1:-}"
 
     case "$subcmd" in
-        init)
+        init|i)
             _wt_banner
             _wt_cmd_init
             ;;
-        create)
+        create|c)
             _wt_banner
             shift
             _wt_cmd_create "$@"
             ;;
-        open)
+        open|o)
             _wt_ensure_setup || return 1
             shift
             _wt_cmd_open "$@"
             ;;
-        delete)
+        delete|d)
             _wt_ensure_setup || return 1
             shift
             _wt_cmd_delete "$@"
             ;;
-        list)
+        list|ls|l)
             _wt_ensure_setup || return 1
             _wt_cmd_list
             ;;
-        sync)
+        sync|s)
             _wt_ensure_setup || return 1
             shift
             _wt_cmd_sync "$@"
             ;;
-        rename)
+        rename|rn)
             _wt_ensure_setup || return 1
             shift
             _wt_cmd_rename "$@"
             ;;
-        clean)
+        clean|cl)
             _wt_ensure_setup || return 1
             _wt_cmd_clean
             ;;
@@ -4252,19 +4252,28 @@ _wt_completion() {
         subcmd)
             local -a subcmds=(
                 'init:Configure editor and dependency directories'
+                'i:Shorthand for init'
                 'create:Create a new worktree'
+                'c:Shorthand for create'
                 'open:Open or cd into a worktree'
+                'o:Shorthand for open'
                 'delete:Delete a worktree and its branch'
+                'd:Shorthand for delete'
                 'list:List worktrees with status'
+                'ls:Shorthand for list'
+                'l:Shorthand for list'
                 'sync:Re-sync gitignored files from main to a worktree'
+                's:Shorthand for sync'
                 'rename:Rename a worktree directory and optionally its branch'
+                'rn:Shorthand for rename'
                 'clean:Detect and delete stale worktrees'
+                'cl:Shorthand for clean'
             )
             _describe -t commands 'subcommand' subcmds
             ;;
         args)
             case "${line[1]}" in
-                create)
+                create|c)
                     _arguments \
                         '(-f --from)'{-f,--from}'[Start branch from a specific ref]:ref:' \
                         '(-p --pr)'{-p,--pr}'[Create worktree from a GitHub PR]:number:' \
@@ -4278,23 +4287,23 @@ _wt_completion() {
                         '(-N --no-init)'{-N,--no-init}'[Skip init]' \
                         '1::name:'
                     ;;
-                sync)
+                sync|s)
                     _arguments \
                         '1::name:_wt_complete_worktrees'
                     ;;
-                rename)
+                rename|rn)
                     _arguments \
                         '1::old name:_wt_complete_worktrees' \
                         '2::new name:'
                     ;;
-                open)
+                open|o)
                     _arguments \
                         '(-o --open)'{-o,--open}'[Open in editor]' \
                         '(-d --cd)'{-d,--cd}'[cd into worktree]' \
                         '(-e --editor)'{-e,--editor}'[Override editor]:editor:(cursor code windsurf)' \
                         '1::name:_wt_complete_worktrees'
                     ;;
-                delete)
+                delete|d)
                     _wt_complete_worktrees
                     ;;
             esac
