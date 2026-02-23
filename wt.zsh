@@ -2219,7 +2219,7 @@ _wt_init_prompt() {
                     else
                         # Bare Escape — "Do nothing" / cancel
                         if (( picker_phase == 1 )); then
-                            choice=$num_opts; break
+                            choice=255; break
                         else
                             ws_choice=255; break
                         fi
@@ -2339,7 +2339,11 @@ _wt_init_prompt() {
         # Compact preselected render
         printf '%b' "$_frozen_lines"
         if (( picker_phase == 2 )); then
-            printf "\r${_WT_C_BOLD}${_cur_heading}${_WT_C_RESET} ${_WT_C_CYAN}${_WT_C_BOLD}› %s${_WT_C_RESET}%b\033[K\n" "${_cur_labels[$(( ws_choice + 1 ))]}" "$_ws_reason_suffix"
+            if (( ws_choice == 255 )); then
+                printf "\r${_WT_C_BOLD}${_cur_heading}${_WT_C_RESET} ${_WT_C_RED}Cancelled${_WT_C_RESET}\033[K\n"
+            else
+                printf "\r${_WT_C_BOLD}${_cur_heading}${_WT_C_RESET} ${_WT_C_CYAN}${_WT_C_BOLD}› %s${_WT_C_RESET}%b\033[K\n" "${_cur_labels[$(( ws_choice + 1 ))]}" "$_ws_reason_suffix"
+            fi
             tail_lines=3
         else
             tail_lines=2
@@ -2347,18 +2351,27 @@ _wt_init_prompt() {
     elif (( picker_phase == 2 )); then
         # Render frozen "What next?" + selected workspace (compact)
         printf '%b' "$_frozen_lines"
-        printf "\r${_WT_C_BOLD}${_cur_heading}${_WT_C_RESET} ${_WT_C_CYAN}${_WT_C_BOLD}› %s${_WT_C_RESET}%b\033[K\n" "${_cur_labels[$(( ws_choice + 1 ))]}" "$_ws_reason_suffix"
+        if (( ws_choice == 255 )); then
+            printf "\r${_WT_C_BOLD}${_cur_heading}${_WT_C_RESET} ${_WT_C_RED}Cancelled${_WT_C_RESET}\033[K\n"
+        else
+            printf "\r${_WT_C_BOLD}${_cur_heading}${_WT_C_RESET} ${_WT_C_CYAN}${_WT_C_BOLD}› %s${_WT_C_RESET}%b\033[K\n" "${_cur_labels[$(( ws_choice + 1 ))]}" "$_ws_reason_suffix"
+        fi
         tail_lines=3
     else
-        printf "\r\033[K\n"
-        printf "\r${_WT_C_BOLD}What next?${_WT_C_RESET}\033[K\n"
-        for (( ii = 1; ii <= num_opts; ii++ )); do
-            if (( ii == choice )); then
-                printf "\r  ${_WT_C_CYAN}${_WT_C_BOLD}› %s${_WT_C_RESET}\033[K\n" "${opt_labels[$ii]}"
-            else
-                printf "\r  ${_WT_C_DIM}  %s${_WT_C_RESET}\033[K\n" "${opt_labels[$ii]}"
-            fi
-        done
+        if (( choice == 255 )); then
+            printf "\r\033[K\n"
+            printf "\r${_WT_C_BOLD}What next?${_WT_C_RESET} ${_WT_C_RED}Cancelled${_WT_C_RESET}\033[K\n"
+        else
+            printf "\r\033[K\n"
+            printf "\r${_WT_C_BOLD}What next?${_WT_C_RESET}\033[K\n"
+            for (( ii = 1; ii <= num_opts; ii++ )); do
+                if (( ii == choice )); then
+                    printf "\r  ${_WT_C_CYAN}${_WT_C_BOLD}› %s${_WT_C_RESET}\033[K\n" "${opt_labels[$ii]}"
+                else
+                    printf "\r  ${_WT_C_DIM}  %s${_WT_C_RESET}\033[K\n" "${opt_labels[$ii]}"
+                fi
+            done
+        fi
     fi
     printf "\033[J"
     printf '\033[?25h'
@@ -2419,7 +2432,7 @@ _wt_init_prompt() {
                 cd "$(_wt_equiv_dir "$wt_path" "$PWD")"
             fi
             ;;
-        3) ;;
+        3|255) ;;
     esac
 
     # ── Background prompt (if init tasks still running) ──────────
