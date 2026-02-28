@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./dist/wt:*)",
+      "Bash(bun add:*)",
+      "Bash(bun dev:*)",
+      "Bash(bun run:*)",
+      "Bash(bun test:*)",
+      "Bash(bun tsc:*)",
+      "Bash(bun typecheck:*)",
+      "Bash(bunx biome:*)",
+      "Bash(bunx tsc:*)",
+      "Bash(bunx tsx:*)",
+      "Bash(git log:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(npm ls:*)",
+      "Bash(npx biome:*)",
+      "Bash(npx bun:*)",
+      "Bash(npx tsc:*)",
+      "mcp__ide__getDiagnostics",
+      "WebFetch(domain:zod.dev)"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "sortImports": {
+    "newlinesBetween": true,
+    "internalPattern": ["#/"],
+    "customGroups": [
+      {
+        "groupName": "react",
+        "elementNamePattern": ["react", "react/**"]
+      },
+      {
+        "groupName": "ink",
+        "elementNamePattern": ["ink", "ink/**", "@inkjs/ui"]
+      }
+    ],
+    "groups": ["react", "ink", "external", ["internal", "subpath"]]
+  }
+}

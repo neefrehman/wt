@@ -97,19 +97,19 @@ If no name is given, auto-generates one as `<repo>-wt-N` (incrementing).
 
 **Flags:**
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--from <ref>` | `-f` | Start the new branch from a specific commit, branch, or tag |
-| `--pr <number>` | `-p` | Create a worktree from a GitHub PR (requires `gh` CLI). Mutually exclusive with `--from` and `--checkout` |
-| `--checkout <ref>` | `-c` | Check out an existing branch, tag, or commit into the worktree (checks locally first, falls back to origin). Does not create a new branch. Mutually exclusive with `--from` and `--pr` |
-| `--editor <name>` | `-e` | Override the configured editor (`cursor`, `code`, `windsurf`) |
-| `--cd` | `-d` | `cd` into the new worktree after creation |
-| `--open` | `-o` | Open in the editor after creation |
-| `--configure` | `-C` | Run the setup wizard for this worktree only (one-off, doesn't save to config) |
-| `--stash` | `-s` | Stash uncommitted changes and apply them to the new worktree |
-| `--execute <cmd>` | `-x` | Run a command in the worktree after opening (only runs with `--cd`) |
-| `--no-prompt` | `-n` | Skip the interactive "What next?" prompt |
-| `--no-init` | `-N` | Skip dependency install, theme setup, and file syncing |
+| Flag               | Short | Description                                                                                                                                                                            |
+| ------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--from <ref>`     | `-f`  | Start the new branch from a specific commit, branch, or tag                                                                                                                            |
+| `--pr <number>`    | `-p`  | Create a worktree from a GitHub PR (requires `gh` CLI). Mutually exclusive with `--from` and `--checkout`                                                                              |
+| `--checkout <ref>` | `-c`  | Check out an existing branch, tag, or commit into the worktree (checks locally first, falls back to origin). Does not create a new branch. Mutually exclusive with `--from` and `--pr` |
+| `--editor <name>`  | `-e`  | Override the configured editor (`cursor`, `code`, `windsurf`)                                                                                                                          |
+| `--cd`             | `-d`  | `cd` into the new worktree after creation                                                                                                                                              |
+| `--open`           | `-o`  | Open in the editor after creation                                                                                                                                                      |
+| `--configure`      | `-C`  | Run the setup wizard for this worktree only (one-off, doesn't save to config)                                                                                                          |
+| `--stash`          | `-s`  | Stash uncommitted changes and apply them to the new worktree                                                                                                                           |
+| `--execute <cmd>`  | `-x`  | Run a command in the worktree after opening (only runs with `--cd`)                                                                                                                    |
+| `--no-prompt`      | `-n`  | Skip the interactive "What next?" prompt                                                                                                                                               |
+| `--no-init`        | `-N`  | Skip dependency install, theme setup, and file syncing                                                                                                                                 |
 
 **What happens on create:**
 
@@ -133,6 +133,7 @@ Opens or navigates to an existing worktree.
 - **Name given** -- uses that worktree directly
 
 After selecting a worktree, choose between:
+
 - **Open in editor** -- opens the workspace file (or worktree root) in your configured editor
 - **cd into worktree** -- changes the shell's working directory
 
@@ -140,12 +141,12 @@ If multiple workspace files exist, a secondary picker lets you choose which one 
 
 **Flags:**
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--open` | `-o` | Open in the editor |
-| `--cd` | `-d` | `cd` into the worktree |
-| `--editor <name>` | `-e` | Override the configured editor (`cursor`, `code`, `windsurf`) |
-| `--execute <cmd>` | `-x` | Run a command in the worktree after opening (only runs with `--cd`) |
+| Flag              | Short | Description                                                         |
+| ----------------- | ----- | ------------------------------------------------------------------- |
+| `--open`          | `-o`  | Open in the editor                                                  |
+| `--cd`            | `-d`  | `cd` into the worktree                                              |
+| `--editor <name>` | `-e`  | Override the configured editor (`cursor`, `code`, `windsurf`)       |
+| `--execute <cmd>` | `-x`  | Run a command in the worktree after opening (only runs with `--cd`) |
 
 ### `wt delete [<name>]` · `wt d`
 
@@ -160,6 +161,7 @@ Worktrees with uncommitted changes will not be deleted (Git's safety check).
 ### `wt list` · `wt ls`
 
 Lists all secondary worktrees for the current repo, showing:
+
 - Worktree name
 - Branch name
 - Current editor theme
@@ -213,13 +215,13 @@ workspaces=my-project.code-workspace
 
 Control which gitignored files are copied from the main worktree to new worktrees:
 
-| Category | Examples | Default |
-|----------|----------|---------|
-| `deps` | `node_modules`, `.venv`, `venv`, `vendor`, `.terraform` | Excluded (installed separately) |
-| `dotenv` | `.env` files (`.env`, `.env.local`, etc.) | Synced |
-| `config` | `.claude/`, `.vscode/`, `.cursor/`, `.tool-versions` | Synced |
-| `build` | `dist`, `build`, `.next`, `out`, `target` | Not synced |
-| `cache` | `.mypy_cache`, `.ruff_cache` | Not synced |
+| Category | Examples                                                | Default                         |
+| -------- | ------------------------------------------------------- | ------------------------------- |
+| `deps`   | `node_modules`, `.venv`, `venv`, `vendor`, `.terraform` | Excluded (installed separately) |
+| `dotenv` | `.env` files (`.env`, `.env.local`, etc.)               | Synced                          |
+| `config` | `.claude/`, `.vscode/`, `.cursor/`, `.tool-versions`    | Synced                          |
+| `build`  | `dist`, `build`, `.next`, `out`, `target`               | Not synced                      |
+| `cache`  | `.mypy_cache`, `.ruff_cache`                            | Not synced                      |
 
 ### Theme rotation
 

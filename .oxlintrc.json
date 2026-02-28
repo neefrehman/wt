@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["ultracite/oxlint/core", "ultracite/oxlint/react"],
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "import/no-nodejs-modules": "error",
+    "react/no-children-prop": "off",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "camelCase": true,
+          "pascalCase": true,
+          "kebabCase": true
+        }
+      }
+    ]
+  },
+  "ignorePatterns": ["dist", "node_modules"]
+}

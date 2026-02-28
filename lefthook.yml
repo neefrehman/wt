@@ -1,0 +1,21 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - run: "bun run fix -- {staged_files}"
+      glob:
+        - "**/*.js"
+        - "**/*.jsx"
+        - "**/*.ts"
+        - "**/*.tsx"
+        - "**/*.json"
+        - "**/*.jsonc"
+        - "**/*.css"
+      stage_fixed: true
+
+    - name: "Typecheck and test changed packages"
+      run: "bun run typecheck"
+      glob: "*.{ts,tsx}"
+
+    - name: "Test changed packages"
+      run: "bun run test"
+      glob: "*.{ts,tsx}"

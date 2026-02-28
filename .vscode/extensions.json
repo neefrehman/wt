@@ -1,7 +1,3 @@
 {
-  "recommendations": [
-    "timonwong.shellcheck",
-    "mads-hartmann.bash-ide-vscode",
-    "streetsidesoftware.code-spell-checker"
-  ]
+  "recommendations": ["streetsidesoftware.code-spell-checker", "oven.bun-vscode", "oxc.oxc-vscode"]
 }

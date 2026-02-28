@@ -4,3 +4,11 @@
 *~
 
 .claude/settings.local.json
+
+# Build artifacts
+node_modules/
+dist/
+src/commands/_all.ts
+
+# Local testing artifacts
+tmp

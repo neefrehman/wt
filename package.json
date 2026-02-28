@@ -1,0 +1,52 @@
+{
+  "name": "wt",
+  "version": "0.1.0",
+  "bin": {
+    "wt": "./src/cli.tsx"
+  },
+  "type": "module",
+  "imports": {
+    "#/*": "./src/*"
+  },
+  "scripts": {
+    "dev": "bun scripts/gen-commands.ts && NODE_ENV=development bun --watch src/cli.tsx",
+    "build": "bun scripts/gen-commands.ts && bun build --compile --minify --outfile dist/wt src/cli.tsx",
+    "start": "bun run build && dist/wt",
+    "run": "dist/wt",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "typecheck": "tsgo --noEmit",
+    "lint": "oxlint --deny-warnings",
+    "format": "oxfmt --write .",
+    "fix": "oxlint --fix && oxfmt --write .",
+    "lint:zsh": "zsh -n wt.zsh",
+    "prepare": "lefthook install"
+  },
+  "dependencies": {
+    "@inkjs/ui": "2.0.0",
+    "@tanstack/react-form": "1.28.3",
+    "@tanstack/react-query": "5.90.21",
+    "commander": "14.0.3",
+    "figures": "6.1.0",
+    "ink": "6.8.0",
+    "ink-motion": "1.0.4",
+    "react": "19.2.4",
+    "remeda": "2.33.6",
+    "simple-git": "^3.32.3",
+    "ts-pattern": "5.9.0",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@total-typescript/tsconfig": "1.0.4",
+    "@types/bun": "1.3.10",
+    "@types/react": "19.2.14",
+    "@typescript/native-preview": "^7.0.0-dev.20260327.2",
+    "ink-testing-library": "4.0.0",
+    "lefthook": "2.1.2",
+    "oxfmt": "^0.42.0",
+    "oxlint": "^1.57.0",
+    "oxlint-tsgolint": "^0.18.0",
+    "react-devtools-core": "7.0.1",
+    "ultracite": "7.2.4"
+  }
+}

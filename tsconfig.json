@@ -1,0 +1,11 @@
+{
+  "extends": "@total-typescript/tsconfig/bundler/dom/app",
+  "exclude": ["node_modules", "dist"],
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["bun-types"],
+    "paths": {
+      "#/*": ["./src/*"]
+    }
+  }
+}
